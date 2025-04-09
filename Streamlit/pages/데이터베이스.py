@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+from PIL import Image
 
 st.title('연령별 사고유형 시간대')
 
@@ -117,3 +118,13 @@ with tab2:
         st.altair_chart(chart2)
     else:
         st.warning("하나 이상의 사고유형을 선택해 주세요.")
+
+
+
+# 링크를 제대로 표시하려면 st.markdown을 사용하고, 클릭 가능한 하이퍼링크로 만들어야 함
+st.write(":green[데이터 출처:]")
+st.markdown("[TAAS 교통사고 분석 시스템 바로가기](https://taas.koroad.or.kr/sta/acs/exs/typical.do?menuId=WEB_KMP_OVT_UAS_ASA)")
+
+# 백슬래시를 raw string으로 처리하거나 슬래시 방향 바꾸기
+img = Image.open(r'C:\Users\mycom\Desktop\project\Image\TAAS.jpg')
+st.image(img, caption='TAAS 교통사고 분석 시스템')
