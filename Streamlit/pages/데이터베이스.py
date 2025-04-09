@@ -5,12 +5,14 @@ import altair as alt
 from PIL import Image
 
 st.set_page_config(layout="wide")
-st.title('연령별 사고유형 시간대')
-
+# 페이지 제목
+st.title("연령대·사고유형별 시간대별 교통사고 데이터")
+col1, col2 = st.columns([1, 7])  # 비율로 나눔 (col1이 좁음)
+with col1:
 # 연도 리스트 및 선택
-years = list(range(2014, 2024))
-year = st.selectbox("조회 연도를 선택해 주세요", years, index=len(years) - 1)
-st.subheader(f"{year}년 시간대별 사고 통계")
+  years = list(range(2014, 2024))
+  year = st.selectbox("연도 선택", years, index=len(years) - 1)
+st.subheader(f"{year}년도 교통사고 통계")
 
 # 시간대, 연령대, 사고유형 정의
 time_slots = ['00~02시', '02~04시', '04~06시', '06~8시', '8~10시', '10~12시',
