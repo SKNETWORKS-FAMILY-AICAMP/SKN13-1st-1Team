@@ -7,13 +7,14 @@ from PIL import Image
 st.set_page_config(layout="wide")
 st.title("연령대·사고유형별 시간대별 교통사고 데이터")
 
-# 탭과 연도 선택을 같은 줄에 배치
-tab_col1, tab_col2 = st.columns([8, 1])
-with tab_col1:
-    tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
-with tab_col2:
+# 연도 선택을 체크박스와 같은 줄에 배치
+header_col1, header_col2 = st.columns([8, 1])
+with header_col2:
     years = list(range(2014, 2024))
     year = st.selectbox("연도 선택", years, index=len(years) - 1)
+
+# 탭
+tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
 
 # DB 연결 함수
 def get_connection():
@@ -44,23 +45,14 @@ time_slot_fix = {
     '10~12시': '10~12시'
 }
 
-column_name_map = {
-    'accident_count': '사고건수',
-    'injury_count': '부상자수',
-    'death_count': '사망자수'
-}
-
 # ---------------- 연령대별 탭 ----------------
 with tab1:
     st.subheader("📋 연령대별 사고 지표")
 
-    all_selected = st.checkbox("✅ 전체 연령대 선택/해제", value=True, key="select_all_age")
     selected_ages = []
-
-    cols = st.columns(8)
+    age_cols = st.columns(8)
     for i, age in enumerate(age_groups):
-        checked = all_selected if f"age_{age}" not in st.session_state else st.session_state[f"age_{age}"]
-        if cols[i % 8].checkbox(age, value=checked, key=f"age_{age}"):
+        if age_cols[i].checkbox(age, value=True, key=f"age_{age}"):
             selected_ages.append(age)
 
     if selected_ages:
@@ -128,15 +120,11 @@ with tab2:
     group_filter = st.selectbox("사고유형 그룹 선택", options=list(accident_group_slots.keys()), key="group_filter")
     subtypes = accident_group_slots[group_filter]
 
-    all_type_selected = st.checkbox("✅ 전체 사고유형 선택/해제", value=True, key="select_all_types")
     selected_types = []
-
-    # st.markdown(f"### ✅ '{group_filter}' 내 개별 사고유형 선택")
-    cols = st.columns(5)
+    type_cols = st.columns(5)
     for i, slot in enumerate(subtypes):
         full_label = f"{group_filter}-{slot}"
-        checked = all_type_selected if f"type_{full_label}" not in st.session_state else st.session_state[f"type_{full_label}"]
-        if cols[i % 5].checkbox(slot, value=checked, key=f"type_{full_label}"):
+        if type_cols[i % 5].checkbox(slot, value=True, key=f"type_{full_label}"):
             selected_types.append(full_label)
 
     if selected_types:
