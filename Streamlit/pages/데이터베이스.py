@@ -7,15 +7,6 @@ from PIL import Image
 st.set_page_config(layout="wide")
 st.title("연령대·사고유형별 시간대별 교통사고 데이터")
 
-# 연도 선택을 체크박스와 같은 줄에 배치
-header_col1, header_col2 = st.columns([8, 1])
-with header_col2:
-    years = list(range(2014, 2024))
-    year = st.selectbox("연도 선택", years, index=len(years) - 1)
-
-# 탭
-tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
-
 # DB 연결 함수
 def get_connection():
     return pymysql.connect(
@@ -30,7 +21,7 @@ def get_connection():
 time_slots = ['00~02시', '02~04시', '04~06시', '06~08시', '08~10시', '10~12시',
               '12~14시', '14~16시', '16~18시', '18~20시', '20~22시', '22~24시']
 
-age_groups = ['20세 이하', '21~30세', '31~40세', '41~50세', '51~60세', '61~64세 이상', '65세 이상', '연령불명']
+age_groups = ['20세 이하', '21~30세', '31~40세', '41~50세', '51~60세', '61~64세', '65세 이상', '연령불명']
 
 accident_group_slots = {
     '차대사람': ['횡단중', '차도통행중', '길가장자리구역통행중', '보도통행중', '기타'],
@@ -45,15 +36,26 @@ time_slot_fix = {
     '10~12시': '10~12시'
 }
 
+# 탭
+tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
+
 # ---------------- 연령대별 탭 ----------------
 with tab1:
     st.subheader("📋 연령대별 사고 지표")
 
+    # 연도 선택
+    age_col1, age_col2 = st.columns([1, 5])
+    with age_col1:
+        year_age = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_age")
+
+    # 체크박스 정렬
     selected_ages = []
-    age_cols = st.columns(8)
-    for i, age in enumerate(age_groups):
-        if age_cols[i].checkbox(age, value=True, key=f"age_{age}"):
-            selected_ages.append(age)
+    with age_col2:
+        age_col2:st.text("연령 선택")
+        age_cols = st.columns(len(age_groups))
+        for i, age in enumerate(age_groups):
+            if age_cols[i].checkbox(age, value=True, key=f"age_{age}"):
+                selected_ages.append(age)
 
     if selected_ages:
         try:
@@ -70,7 +72,7 @@ with tab1:
                 ORDER BY ag.age_range, ts.time_range
             """
             with conn.cursor() as cursor:
-                cursor.execute(query, (year, *selected_ages))
+                cursor.execute(query, (year_age, *selected_ages))
                 rows = cursor.fetchall()
             df = pd.DataFrame(rows)
 
@@ -114,18 +116,28 @@ with tab1:
         st.warning("하나 이상의 연령대를 선택해 주세요.")
 
 # ---------------- 사고유형별 탭 ----------------
+# ---------------- 사고유형별 탭 ----------------
 with tab2:
     st.subheader("📋 사고유형별 사고 지표")
 
-    group_filter = st.selectbox("사고유형 그룹 선택", options=list(accident_group_slots.keys()), key="group_filter")
-    subtypes = accident_group_slots[group_filter]
+    # 연도 선택 → 사고유형 그룹 선택 → 체크박스
+    type_col1, type_col2, type_col3 = st.columns([1, 1, 5])
+    with type_col1:
+        year_type = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_type")
 
+    with type_col2:
+        group_filter = st.selectbox("사고유형 그룹 선택", options=list(accident_group_slots.keys()), key="group_filter")
+
+    subtypes = accident_group_slots[group_filter]
     selected_types = []
-    type_cols = st.columns(5)
-    for i, slot in enumerate(subtypes):
-        full_label = f"{group_filter}-{slot}"
-        if type_cols[i % 5].checkbox(slot, value=True, key=f"type_{full_label}"):
-            selected_types.append(full_label)
+    with type_col3:
+        st.text("사고유형 선택")
+        type_cols = st.columns(len(subtypes))
+        for i, slot in enumerate(subtypes):
+            full_label = f"{group_filter}-{slot}"
+            if type_cols[i].checkbox(slot, value=True, key=f"type_{full_label}"):
+                selected_types.append(full_label)
+
 
     if selected_types:
         try:
@@ -142,7 +154,7 @@ with tab2:
                 ORDER BY ac.type_list, ts.time_range
             """
             with conn.cursor() as cursor:
-                cursor.execute(query, (year, *selected_types))
+                cursor.execute(query, (year_type, *selected_types))
                 rows = cursor.fetchall()
             df = pd.DataFrame(rows)
 
@@ -184,11 +196,11 @@ with tab2:
         st.warning("하나 이상의 사고유형을 선택해 주세요.")
 
 # 출처 및 이미지
-st.write(":green[데이터 출처:]")
-st.markdown("[TAAS 교통사고 분석 시스템 바로가기](https://taas.koroad.or.kr/sta/acs/exs/typical.do?menuId=WEB_KMP_OVT_UAS_ASA)")
+# st.write(":green[데이터 출처:]")
+# st.markdown("[TAAS 교통사고 분석 시스템 바로가기](https://taas.koroad.or.kr/sta/acs/exs/typical.do?menuId=WEB_KMP_OVT_UAS_ASA)")
 
-try:
-    img = Image.open(r'C:\Users\mycom\Desktop\project_1st\SKN13-1st-1Team\Streamlit\Image\TAAS.jpg')
-    st.image(img, caption='TAAS 교통사고 분석 시스템')
-except FileNotFoundError:
-    st.warning("이미지 파일을 찾을 수 없습니다. 경로를 확인해 주세요.")
+# try:
+#     img = Image.open(r'C:\Users\mycom\Desktop\project_1st\SKN13-1st-1Team\Streamlit\Image\TAAS.jpg')
+#     st.image(img, caption='TAAS 교통사고 분석 시스템')
+# except FileNotFoundError:
+#     st.warning("이미지 파일을 찾을 수 없습니다. 경로를 확인해 주세요.")
