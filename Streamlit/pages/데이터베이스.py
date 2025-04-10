@@ -4,6 +4,15 @@ import pymysql
 import altair as alt
 from PIL import Image
 
+st.set_page_config(layout="wide")
+# 페이지 제목
+st.title("연령대·사고유형별 시간대별 교통사고 데이터")
+col1, col2 = st.columns([1, 7])  # 비율로 나눔 (col1이 좁음)
+with col1:
+# 연도 리스트 및 선택
+  years = list(range(2014, 2024))
+  year = st.selectbox("연도 선택", years, index=len(years) - 1)
+st.subheader(f"{year}년도 교통사고 통계")
 # DB 연결 함수
 def get_connection():
     return pymysql.connect(
