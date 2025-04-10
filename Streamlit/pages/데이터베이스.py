@@ -7,12 +7,13 @@ from PIL import Image
 st.set_page_config(layout="wide")
 st.title("연령대·사고유형별 시간대별 교통사고 데이터")
 
-col1, col2 = st.columns([1, 7])
-with col1:
+# 탭과 연도 선택을 같은 줄에 배치
+tab_col1, tab_col2 = st.columns([8, 1])
+with tab_col1:
+    tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
+with tab_col2:
     years = list(range(2014, 2024))
     year = st.selectbox("연도 선택", years, index=len(years) - 1)
-
-st.subheader(f"{year}년도 교통사고 통계")
 
 # DB 연결 함수
 def get_connection():
@@ -24,13 +25,11 @@ def get_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# 시간대, 연령대, 사고유형 정의
+# 공통 설정
 time_slots = ['00~02시', '02~04시', '04~06시', '06~08시', '08~10시', '10~12시',
               '12~14시', '14~16시', '16~18시', '18~20시', '20~22시', '22~24시']
 
 age_groups = ['20세 이하', '21~30세', '31~40세', '41~50세', '51~60세', '61~64세 이상', '65세 이상', '연령불명']
-
-metrics = {'사고건수': 'accident_count', '부상자수': 'injury_count', '사망자수': 'death_count'}
 
 accident_group_slots = {
     '차대사람': ['횡단중', '차도통행중', '길가장자리구역통행중', '보도통행중', '기타'],
@@ -39,41 +38,38 @@ accident_group_slots = {
     '철길건널목': ['기타']
 }
 
-accident_types = []
-accident_group_map = {}
-for group, slots in accident_group_slots.items():
-    for slot in slots:
-        key = f"{group}-{slot}"
-        accident_types.append(key)
-        accident_group_map[key] = group
-
-# 시간대 문자열 보정 딕셔너리
 time_slot_fix = {
     '06~8시': '06~08시',
     '8~10시': '08~10시',
     '10~12시': '10~12시'
 }
 
-# 탭 구성
-tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
+column_name_map = {
+    'accident_count': '사고건수',
+    'injury_count': '부상자수',
+    'death_count': '사망자수'
+}
 
 # ---------------- 연령대별 탭 ----------------
 with tab1:
     st.subheader("📋 연령대별 사고 지표")
-    cols = st.columns(3)
-    selected_ages = []
-    for i, age in enumerate(age_groups):
-        if cols[i % 3].checkbox(age, True, key=f"age_{age}"):
-            selected_ages.append(age)
 
-    selected_metric = st.selectbox("표시할 지표 선택", list(metrics.keys()), index=0, key="metric_age")
+    all_selected = st.checkbox("✅ 전체 연령대 선택/해제", value=True, key="select_all_age")
+    selected_ages = []
+
+    cols = st.columns(8)
+    for i, age in enumerate(age_groups):
+        checked = all_selected if f"age_{age}" not in st.session_state else st.session_state[f"age_{age}"]
+        if cols[i % 8].checkbox(age, value=checked, key=f"age_{age}"):
+            selected_ages.append(age)
 
     if selected_ages:
         try:
             conn = get_connection()
             placeholders = ', '.join(['%s'] * len(selected_ages))
             query = f"""
-                SELECT ag.age_range, ts.time_range, ast.{metrics[selected_metric]}
+                SELECT ag.age_range, ts.time_range,
+                       ast.accident_count, ast.injury_count, ast.death_count
                 FROM AccidentStatsAge ast
                 JOIN AgeGroup ag ON ast.age_group_id = ag.id
                 JOIN TimeSlot ts ON ast.time_slot_id = ts.id
@@ -89,25 +85,36 @@ with tab1:
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
-                # 시간대 문자열 보정 적용
                 df['time_range'] = df['time_range'].replace(time_slot_fix)
-
-                pivot_df = df.pivot(index='age_range', columns='time_range', values=metrics[selected_metric])
-                melt_df = df.rename(columns={
+                df = df.rename(columns={
                     'age_range': '연령대',
                     'time_range': '시간대',
-                    metrics[selected_metric]: selected_metric
+                    'accident_count': '사고건수',
+                    'injury_count': '부상자수',
+                    'death_count': '사망자수'
                 })
 
-                chart = alt.Chart(melt_df).mark_bar().encode(
-                    x='시간대:O',
-                    y=f'{selected_metric}:Q',
+                chart = alt.Chart(df).mark_bar().encode(
+                    x=alt.X('시간대:O', sort=time_slots),
+                    y='사고건수:Q',
                     color='연령대:N',
-                    tooltip=['연령대', '시간대', selected_metric]
+                    tooltip=['연령대', '시간대', '사고건수']
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
-                st.dataframe(pivot_df, use_container_width=True, height=500)
+
+                melt = pd.melt(df,
+                               id_vars=['연령대', '시간대'],
+                               value_vars=['사고건수', '부상자수', '사망자수'],
+                               var_name='지표',
+                               value_name='값')
+
+                pivot_df = melt.pivot_table(
+                    index=['연령대', '지표'],
+                    columns='시간대',
+                    values='값'
+                )
+                st.dataframe(pivot_df, use_container_width=True, height=600)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
@@ -119,23 +126,26 @@ with tab2:
     st.subheader("📋 사고유형별 사고 지표")
 
     group_filter = st.selectbox("사고유형 그룹 선택", options=list(accident_group_slots.keys()), key="group_filter")
+    subtypes = accident_group_slots[group_filter]
+
+    all_type_selected = st.checkbox("✅ 전체 사고유형 선택/해제", value=True, key="select_all_types")
     selected_types = []
 
-    st.markdown(f"### ✅ '{group_filter}' 내 개별 사고유형 선택")
-    cols = st.columns(4)
-    for i, slot in enumerate(accident_group_slots[group_filter]):
+    # st.markdown(f"### ✅ '{group_filter}' 내 개별 사고유형 선택")
+    cols = st.columns(5)
+    for i, slot in enumerate(subtypes):
         full_label = f"{group_filter}-{slot}"
-        if cols[i % 4].checkbox(slot, True, key=f"type_{full_label}"):
+        checked = all_type_selected if f"type_{full_label}" not in st.session_state else st.session_state[f"type_{full_label}"]
+        if cols[i % 5].checkbox(slot, value=checked, key=f"type_{full_label}"):
             selected_types.append(full_label)
-
-    selected_metric = st.selectbox("표시할 지표 선택", list(metrics.keys()), index=0, key="metric_accident")
 
     if selected_types:
         try:
             conn = get_connection()
             placeholders = ', '.join(['%s'] * len(selected_types))
             query = f"""
-                SELECT ac.type_list AS 사고유형, ts.time_range AS 시간대, ast.{metrics[selected_metric]}
+                SELECT ac.type_list AS 사고유형, ts.time_range AS 시간대,
+                       ast.accident_count, ast.injury_count, ast.death_count
                 FROM AccidentStatsTime ast
                 JOIN AccidentCause ac ON ast.accident_type_id = ac.id
                 JOIN TimeSlot ts ON ast.time_slot_id = ts.id
@@ -151,20 +161,34 @@ with tab2:
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
-                # 시간대 문자열 보정 적용
                 df['시간대'] = df['시간대'].replace(time_slot_fix)
-
-                pivot_df = df.pivot(index='사고유형', columns='시간대', values=metrics[selected_metric])
+                df = df.rename(columns={
+                    'accident_count': '사고건수',
+                    'injury_count': '부상자수',
+                    'death_count': '사망자수'
+                })
 
                 chart = alt.Chart(df).mark_bar().encode(
-                    x='시간대:O',
-                    y=f'{metrics[selected_metric]}:Q',
+                    x=alt.X('시간대:O', sort=time_slots),
+                    y='사고건수:Q',
                     color='사고유형:N',
-                    tooltip=['사고유형', '시간대', metrics[selected_metric]]
+                    tooltip=['사고유형', '시간대', '사고건수']
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
-                st.dataframe(pivot_df, use_container_width=True, height=500)
+
+                melt = pd.melt(df,
+                               id_vars=['사고유형', '시간대'],
+                               value_vars=['사고건수', '부상자수', '사망자수'],
+                               var_name='지표',
+                               value_name='값')
+
+                pivot_df = melt.pivot_table(
+                    index=['사고유형', '지표'],
+                    columns='시간대',
+                    values='값'
+                )
+                st.dataframe(pivot_df, use_container_width=True, height=600)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
