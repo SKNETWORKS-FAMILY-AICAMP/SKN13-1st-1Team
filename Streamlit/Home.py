@@ -3,15 +3,8 @@ from PIL import Image
 
 st.set_page_config(page_title="교통사고 통계 시각화", layout="wide")
 
-st.title("🚦 교통사고 통계 시각화 대시보드")
+st.title("💥🚗 교통사고 통계 시각화 대시보드")
 st.markdown("---")
-
-# 이미지 표시
-try:
-    img = Image.open(r'C:\Users\mycom\Desktop\project_1st\SKN13-1st-1Team\Streamlit\Image\TAAS.jpg')
-    st.image(img, use_container_width=True)
-except:
-    st.warning("메인 이미지 파일을 불러올 수 없습니다.")
 
 # 앱 소개
 st.markdown("""
@@ -28,15 +21,17 @@ st.markdown("""
 
 ---
 
-### 📂 데이터 출처
-본 데이터는 **[TAAS 교통사고 분석 시스템](https://taas.koroad.or.kr/sta/acs/exs/typical.do?menuId=WEB_KMP_OVT_UAS_ASA)** 에서 제공된 통계를 기반으로 정제하였습니다.
-
----
-
 ### 🧑‍💻 개발/기획
 - 프로젝트명: **SKN13-1st-1Team**
 - 목적: 교통사고 예방을 위한 데이터 기반 의사결정 지원
+
+---
+            
+### 📂 데이터 출처
+본 데이터는 **[TAAS 교통사고 분석 시스템](https://taas.koroad.or.kr/sta/acs/exs/typical.do?menuId=WEB_KMP_OVT_UAS_ASA)** 에서 제공된 통계를 기반으로 정제하였습니다.
+
 """)
 
+
+
 st.success("왼쪽 사이드바 또는 상단 탭에서 분석을 시작해보세요!")
-sd
