@@ -5,14 +5,15 @@ import altair as alt
 from PIL import Image
 
 st.set_page_config(layout="wide")
-# 페이지 제목
 st.title("연령대·사고유형별 시간대별 교통사고 데이터")
-col1, col2 = st.columns([1, 7])  # 비율로 나눔 (col1이 좁음)
+
+col1, col2 = st.columns([1, 7])
 with col1:
-# 연도 리스트 및 선택
-  years = list(range(2014, 2024))
-  year = st.selectbox("연도 선택", years, index=len(years) - 1)
+    years = list(range(2014, 2024))
+    year = st.selectbox("연도 선택", years, index=len(years) - 1)
+
 st.subheader(f"{year}년도 교통사고 통계")
+
 # DB 연결 함수
 def get_connection():
     return pymysql.connect(
@@ -24,9 +25,11 @@ def get_connection():
     )
 
 # 시간대, 연령대, 사고유형 정의
-time_slots = ['00~02시', '02~04시', '04~06시', '06~8시', '8~10시', '10~12시',
+time_slots = ['00~02시', '02~04시', '04~06시', '06~08시', '08~10시', '10~12시',
               '12~14시', '14~16시', '16~18시', '18~20시', '20~22시', '22~24시']
-age_groups = ['20세 이하', '21`~`30세', '31`~`40세', '41`~`50세', '51`~`60세', '61`~`64세 이상','65세 이상', '연령불명']
+
+age_groups = ['20세 이하', '21~30세', '31~40세', '41~50세', '51~60세', '61~64세 이상', '65세 이상', '연령불명']
+
 metrics = {'사고건수': 'accident_count', '부상자수': 'injury_count', '사망자수': 'death_count'}
 
 accident_group_slots = {
@@ -44,9 +47,12 @@ for group, slots in accident_group_slots.items():
         accident_types.append(key)
         accident_group_map[key] = group
 
-# 연도 선택
-years = list(range(2014, 2024))
-year = st.selectbox("조회 연도를 선택해 주세요", years, index=len(years) - 1)
+# 시간대 문자열 보정 딕셔너리
+time_slot_fix = {
+    '06~8시': '06~08시',
+    '8~10시': '08~10시',
+    '10~12시': '10~12시'
+}
 
 # 탭 구성
 tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
@@ -54,8 +60,6 @@ tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
 # ---------------- 연령대별 탭 ----------------
 with tab1:
     st.subheader("📋 연령대별 사고 지표")
-
-    # ✅ 연령대 체크박스를 2줄(3열)로 배치
     cols = st.columns(3)
     selected_ages = []
     for i, age in enumerate(age_groups):
@@ -85,9 +89,10 @@ with tab1:
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
-                pivot_df = df.pivot(index='age_range', columns='time_range', values=metrics[selected_metric])
-                st.dataframe(pivot_df, use_container_width=True, height=500)
+                # 시간대 문자열 보정 적용
+                df['time_range'] = df['time_range'].replace(time_slot_fix)
 
+                pivot_df = df.pivot(index='age_range', columns='time_range', values=metrics[selected_metric])
                 melt_df = df.rename(columns={
                     'age_range': '연령대',
                     'time_range': '시간대',
@@ -102,10 +107,10 @@ with tab1:
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
+                st.dataframe(pivot_df, use_container_width=True, height=500)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
-
     else:
         st.warning("하나 이상의 연령대를 선택해 주세요.")
 
@@ -117,8 +122,6 @@ with tab2:
     selected_types = []
 
     st.markdown(f"### ✅ '{group_filter}' 내 개별 사고유형 선택")
-
-    # ✅ 사고유형 체크박스를 4열로 정렬
     cols = st.columns(4)
     for i, slot in enumerate(accident_group_slots[group_filter]):
         full_label = f"{group_filter}-{slot}"
@@ -148,8 +151,10 @@ with tab2:
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
+                # 시간대 문자열 보정 적용
+                df['시간대'] = df['시간대'].replace(time_slot_fix)
+
                 pivot_df = df.pivot(index='사고유형', columns='시간대', values=metrics[selected_metric])
-                st.dataframe(pivot_df, use_container_width=True, height=500)
 
                 chart = alt.Chart(df).mark_bar().encode(
                     x='시간대:O',
@@ -159,6 +164,7 @@ with tab2:
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
+                st.dataframe(pivot_df, use_container_width=True, height=500)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
