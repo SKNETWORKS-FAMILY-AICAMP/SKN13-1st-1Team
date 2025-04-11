@@ -31,30 +31,26 @@
 
 ## 📁 3. 프로젝트 디렉토리 구조
 
-TrafficAccidentDashboard/
-│
-├── data/
-│   ├── create_tables.sql        # DB 테이블 생성 스크립트
-│   └── sample_data.csv          # 테스트용 샘플 데이터
-│
-├── db/
-│   └── connection.py            # MySQL DB 연결 함수
-│
-├── pages/
-│   ├── 1_연령대별_사고통계.py     # 연령대별 사고 통계 시각화 페이지
-│   ├── 2_사고유형별_사고통계.py   # 사고유형별 시간대 통계 페이지
-│   └── 3_FAQ_그래프연동.py       # FAQ 기반 그래프 페이지
-│
-├── images/
-│   └── TAAS.jpg                 # TAAS 이미지, ERD, 기타 시각 자료
-│
-├── utils/
-│   └── helpers.py               # 공통 데이터 처리 유틸 함수
-│
-├── .gitignore                   # Git 무시 파일 목록
-├── requirements.txt             # Python 패키지 설치 목록
-├── README.md                    # 본 프로젝트 설명서
-└── streamlit_app.py             # Streamlit 메인 앱 (홈페이지)
+| 디렉토리 / 파일 | 설명 |
+|------------------|------|
+| `data/` | 데이터 파일 폴더 |
+| ├── `create_tables.sql` | DB 테이블 생성 스크립트 |
+| └── `sample_data.csv` | 테스트용 샘플 데이터 |
+| `db/` | DB 연결 관련 폴더 |
+| └── `connection.py` | MySQL DB 연결 함수 |
+| `pages/` | Streamlit 페이지 모듈 폴더 |
+| ├── `1_연령대별_사고통계.py` | 연령대별 사고 통계 시각화 |
+| ├── `2_사고유형별_사고통계.py` | 사고유형별 시간대 통계 |
+| └── `3_FAQ_그래프연동.py` | FAQ 기반 그래프 페이지 |
+| `images/` | 이미지 및 ERD 저장 |
+| └── `TAAS.jpg` | 프로젝트 관련 이미지 |
+| `utils/` | 유틸리티 함수 폴더 |
+| └── `helpers.py` | 공통 데이터 처리 함수 |
+| `.gitignore` | Git 무시 파일 목록 |
+| `requirements.txt` | 설치할 패키지 목록 |
+| `README.md` | 프로젝트 설명 문서 |
+| `streamlit_app.py` | Streamlit 메인 앱 (홈페이지) |
+
 
 ---
 
@@ -111,11 +107,24 @@ TAAS 교통사고분석시스템 (https://taas.koroad.or.kr)
 
 ## 🔧 7. 사용 패키지
 
-- `streamlit`
-- `pymysql`
-- `pandas`
-- `altair`
-- `Pillow`
+<p align="left">
+  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" alt="Streamlit">
+  <img src="https://img.shields.io/badge/PyMySQL-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="PyMySQL">
+  <img src="https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white" alt="Pandas">
+  <img src="https://img.shields.io/badge/Altair-1E88E5?style=for-the-badge&logo=altair&logoColor=white" alt="Altair">
+  <img src="https://img.shields.io/badge/Pillow-FFDD54?style=for-the-badge&logo=pillow&logoColor=black" alt="Pillow">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+</p>
+<p align="left">
+  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" alt="Git">
+  <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+  <img src="https://img.shields.io/badge/Selenium-43B02A?style=for-the-badge&logo=selenium&logoColor=white" alt="Selenium">
+  <img src="https://img.shields.io/badge/BeautifulSoup-4B8BBE?style=for-the-badge&logo=python&logoColor=white" alt="BeautifulSoup4">
+  <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
+  <img src="https://img.shields.io/badge/MySQL_Workbench-00758F?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL Workbench">
+</p>
+
 
 ---
 
