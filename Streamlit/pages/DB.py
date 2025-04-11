@@ -31,10 +31,10 @@ with tab1:
     with age_col1:
         year_age = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_age")
 
-    # 연령대 선택 체크박스
+    # 연령대 체크박스
     selected_ages = []
     with age_col2:
-        age_col2:st.text("연령 선택")
+        st.text("연령 선택")
         age_cols = st.columns(len(age_groups))
         for i, age in enumerate(age_groups):
             if age_cols[i].checkbox(age, value=True, key=f"age_{age}"):
@@ -45,47 +45,36 @@ with tab1:
             conn = get_connection()
             placeholders = ', '.join(['%s'] * len(selected_ages))
             query = f"""
-                SELECT ag.연령대, ats.시간대, ats.값 AS 사고건수
-                FROM accidentstatsage ats
-                JOIN AgeGroup ag ON ats.연령대 = ag.age_range
-                WHERE ats.year_type_id = %s
-                  AND ag.연령대 IN ({placeholders})
-                ORDER BY ag.연령대, ats.시간대
+                SELECT age_group_range AS 연령대, accident_type_name AS 사고유형,
+                       accident_count AS 사고건수,
+                       injury_count AS 부상자수,
+                       death_count AS 사망자수
+                FROM accidentstatsage
+                WHERE year_type_id = %s
+                  AND age_group_range IN ({placeholders})
+                ORDER BY age_group_range, accident_type_name
             """
             with conn.cursor() as cursor:
                 cursor.execute(query, (year_age, *selected_ages))
                 rows = cursor.fetchall()
+
             df = pd.DataFrame(rows)
 
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
-                df['사고건수'] = pd.to_numeric(df['사고건수'], errors='coerce')
-
                 # 그래프 출력
                 chart = alt.Chart(df).mark_bar().encode(
-                    x=alt.X('시간대:O', sort=time_slots),
+                    x=alt.X('사고유형:N'),
                     y='사고건수:Q',
                     color='연령대:N',
-                    tooltip=['연령대', '시간대', '사고건수']
+                    tooltip=['연령대', '사고유형', '사고건수']
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
 
-                # 피벗 테이블 출력
-                melt = pd.melt(df,
-                               id_vars=['연령대', '시간대'],
-                               value_vars=['사고건수'],
-                               var_name='지표',
-                               value_name='값')
-
-                pivot_df = melt.pivot_table(
-                    index=['연령대', '지표'],
-                    columns='시간대',
-                    values='값'
-                )
-                pivot_df = pivot_df.astype(int)
-                st.dataframe(pivot_df, use_container_width=True, height=600)
+                # 표 출력
+                st.dataframe(df, use_container_width=True, height=600)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
