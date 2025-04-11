@@ -6,9 +6,9 @@ import altair as alt
 # DB 연결 함수
 def get_connection():
     return pymysql.connect(
-        host="192.168.0.12",    # DBMS 의 ip(host) : str
+        host="localhost",    # DBMS 의 ip(host) : str
         port=3306,           # DBMS의 port 번호: int
-        user='test',        # username: str
+        user='root',        # username: str
         password="1111",    # password: str
         db="projet_1st"
     )
@@ -80,88 +80,68 @@ with tab1:
         st.warning("하나 이상의 연령대를 선택해 주세요.")
 
 # ---------------- 사고유형별 탭 ----------------
+# ---------------- 시간대별 탭 ----------------
 with tab2:
-    st.subheader("📋 시간대별 사고유형별 교통사고 지표")
+    st.subheader("⏰ 시간대별 사고유형별 교통사고 지표")
 
-    # 연도 선택
-    year_type = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_type_select")
+    # UI 정렬
+    time_col1, time_col2, time_col3 = st.columns([1, 2, 2])
 
-    # 사고유형 대분류 선택
-    accident_group = st.selectbox("사고유형 대분류 선택", ['차대사람', '차대차', '차량단독', '철길건널목'], key="accident_group_select")
+    with time_col1:
+        year_time = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_time")
 
-    # 사고유형 중분류 선택
-    selected_subtypes = []
-    st.text("사고유형 중분류 선택")
-    subtypes = ['횡단중', '차도통행중', '보도통행중', '기타'] if accident_group == '차대사람' else ['충돌', '추돌', '기타']
-    cols = st.columns(len(subtypes))
-    for i, stype in enumerate(subtypes):
-        if cols[i].checkbox(stype, value=True):
-            selected_subtypes.append(stype)
+    with time_col2:
+        measure = st.selectbox("측정항목 선택", ["사고[건]", "부상[명]", "사망[명]"], key="measure")
 
-    if selected_subtypes:
+    with time_col3:
+        st.text("사고유형 선택")
+        selected_types = []
+        type_options = ['차대사람', '차대차', '차량단독']  # 필요시 동적 로딩 가능
+        type_cols = st.columns(len(type_options))
+        for i, type_name in enumerate(type_options):
+            if type_cols[i].checkbox(type_name, value=True, key=f"type_{type_name}"):
+                selected_types.append(type_name)
+
+    if selected_types:
         try:
             conn = get_connection()
+            placeholders = ', '.join(['%s'] * len(selected_types))
 
-            # 쿼리 조건이 잘 적용되는지 확인
-            placeholders = ', '.join(['%s'] * len(selected_subtypes))
             query = f"""
-                SELECT accident_cause_type_name, accident_cause_type_list, time_slot_id, count
+                SELECT accident_cause_type_name AS 사고유형대분류,
+                       accident_cause_type_list AS 사고유형중분류,
+                       time_slot_id AS 시간대,
+                       count AS 값
                 FROM accidentstatstime
-                WHERE accident_cause_type_name = %s
-                  AND accident_cause_type_list IN ({placeholders})
-                  AND year_type_id = %s
+                WHERE year_type_id = %s
+                  AND measure = %s
+                  AND accident_cause_type_name IN ({placeholders})
+                ORDER BY 사고유형대분류, 사고유형중분류, 시간대
             """
             with conn.cursor() as cursor:
-                cursor.execute(query, (accident_group, *selected_subtypes, year_type))
+                cursor.execute(query, (year_time, measure, *selected_types))
                 rows = cursor.fetchall()
 
-            # 데이터가 없을 경우 확인
-            if not rows:
-                st.warning(f"선택한 연도({year_type})와 사고유형에 대한 데이터가 없습니다.")
+            df_time = pd.DataFrame(rows, columns=['사고유형대분류', '사고유형중분류', '시간대', '값'])
+
+            if df_time.empty:
+                st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
             else:
-                df = pd.DataFrame(rows)
-
-                # 데이터 처리
-                # df['사고건수'] = pd.to_numeric(df['값'], errors='coerce')
-                df['count'] = pd.to_numeric(df['값'], errors='coerce')
-
-                # 그래프 출력
-                chart = alt.Chart(df).mark_bar().encode(
-                    x=alt.X('time_slot_id:O', title='시간대', sort=time_slots),
-                    y=alt.Y('count:Q', title='사고건수'),
-                    color='accident_cause_type_list:N',
-                    tooltip=['accident_cause_type_list', 'time_slot_id', 'count']
-                ).properties(width=1000, height=500).interactive()
+                # 시각화
+                chart = alt.Chart(df_time).mark_bar().encode(
+                    x=alt.X('시간대:N', sort=time_slots),
+                    y='값:Q',
+                    color='사고유형중분류:N',
+                    column='사고유형대분류:N',
+                    tooltip=['사고유형대분류', '사고유형중분류', '시간대', '값']
+                ).properties(width=250, height=500).configure_view(stroke=None)
 
                 st.altair_chart(chart, use_container_width=True)
 
-                # 피벗 테이블 출력
-                melt = pd.melt(df,
-                               id_vars=['사고유형중분류', '시간대'],
-                               value_vars=['사고건수'],
-                               var_name='지표',
-                               value_name='사고건수_값')
-
-                pivot_df = melt.pivot_table(
-                    index=['사고유형중분류', '지표'],
-                    columns='시간대',
-                    values='사고건수_값'
-                )
-                # melt = pd.melt(df,
-                #                id_vars=['accident_cause_type_list', 'time_slot_id'],
-                #                value_vars=['count'],
-                #                var_name='지표',
-                #                value_name='사고건수_값')
-
-                # pivot_df = melt.pivot_table(
-                #     index=['accident_cause_type_list', '지표'],
-                #     columns='시간대',
-                #     values='사고건수_값'
-                # )
-                # pivot_df = pivot_df.astype(int)
-                # st.dataframe(pivot_df, use_container_width=True, height=600)
+                # 표 출력
+                st.dataframe(df_time, use_container_width=True, height=600)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
     else:
-        st.warning("사고유형 중분류를 하나 이상 선택해 주세요.")
+        st.warning("하나 이상의 사고유형 대분류를 선택해 주세요.")
