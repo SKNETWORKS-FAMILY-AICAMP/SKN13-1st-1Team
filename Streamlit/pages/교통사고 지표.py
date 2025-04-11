@@ -6,11 +6,11 @@ import altair as alt
 # DB 연결 함수
 def get_connection():
     return pymysql.connect(
-        host='localhost',
-        user='root',
-        password='1111',
-        database='crawl',
-        cursorclass=pymysql.cursors.DictCursor
+        host="192.168.0.12",    # DBMS 의 ip(host) : str
+        port=3306,           # DBMS의 port 번호: int
+        user='test',        # username: str
+        password="1111",    # password: str
+        db="projet_1st"
     )
 
 # 공통 설정
@@ -20,11 +20,11 @@ time_slots = ['00~02시', '02~04시', '04~06시', '06~08시', '08~10시', '10~12
 age_groups = ['20세 이하', '21~30세', '31~40세', '41~50세', '51~60세', '61~64세', '65세 이상', '연령불명']
 
 # 탭 설정
-tab1, tab2 = st.tabs(['연령대별', '사고유형별'])
+tab1, tab2 = st.tabs(['연령대별', '시간대별'])
 
 # ---------------- 연령대별 탭 ----------------
 with tab1:
-    st.subheader("📋 연령대별 사고 지표")
+    st.subheader("📋 연령대별 사고유형별 교통사고 지표")
 
     # 연도 선택
     age_col1, age_col2 = st.columns([1, 5])
@@ -46,9 +46,7 @@ with tab1:
             placeholders = ', '.join(['%s'] * len(selected_ages))
             query = f"""
                 SELECT age_group_range AS 연령대, accident_type_name AS 사고유형,
-                       accident_count AS 사고건수,
-                       injury_count AS 부상자수,
-                       death_count AS 사망자수
+                       count AS 사고건수
                 FROM accidentstatsage
                 WHERE year_type_id = %s
                   AND age_group_range IN ({placeholders})
@@ -58,7 +56,7 @@ with tab1:
                 cursor.execute(query, (year_age, *selected_ages))
                 rows = cursor.fetchall()
 
-            df = pd.DataFrame(rows)
+            df = pd.DataFrame(rows, columns=['연령대', '사고유형', '사고건수'])
 
             if df.empty:
                 st.warning("선택한 조건에 해당하는 데이터가 없습니다.")
@@ -83,7 +81,7 @@ with tab1:
 
 # ---------------- 사고유형별 탭 ----------------
 with tab2:
-    st.subheader("📋 사고유형별 사고 지표")
+    st.subheader("📋 시간대별 사고유형별 교통사고 지표")
 
     # 연도 선택
     year_type = st.selectbox("연도 선택", list(range(2014, 2024)), index=9, key="year_type_select")
@@ -107,10 +105,10 @@ with tab2:
             # 쿼리 조건이 잘 적용되는지 확인
             placeholders = ', '.join(['%s'] * len(selected_subtypes))
             query = f"""
-                SELECT 사고유형대분류, 사고유형중분류, 시간대, 구분, 값
+                SELECT accident_cause_type_name, accident_cause_type_list, time_slot_id, count
                 FROM accidentstatstime
-                WHERE 사고유형대분류 = %s
-                  AND 사고유형중분류 IN ({placeholders})
+                WHERE accident_cause_type_name = %s
+                  AND accident_cause_type_list IN ({placeholders})
                   AND year_type_id = %s
             """
             with conn.cursor() as cursor:
@@ -124,14 +122,15 @@ with tab2:
                 df = pd.DataFrame(rows)
 
                 # 데이터 처리
-                df['사고건수'] = pd.to_numeric(df['값'], errors='coerce')
+                # df['사고건수'] = pd.to_numeric(df['값'], errors='coerce')
+                df['count'] = pd.to_numeric(df['값'], errors='coerce')
 
                 # 그래프 출력
                 chart = alt.Chart(df).mark_bar().encode(
-                    x=alt.X('시간대:O', sort=time_slots),
-                    y='사고건수:Q',
-                    color='사고유형중분류:N',
-                    tooltip=['사고유형중분류', '시간대', '사고건수']
+                    x=alt.X('time_slot_id:O', title='시간대', sort=time_slots),
+                    y=alt.Y('count:Q', title='사고건수'),
+                    color='accident_cause_type_list:N',
+                    tooltip=['accident_cause_type_list', 'time_slot_id', 'count']
                 ).properties(width=1000, height=500).interactive()
 
                 st.altair_chart(chart, use_container_width=True)
@@ -148,8 +147,19 @@ with tab2:
                     columns='시간대',
                     values='사고건수_값'
                 )
-                pivot_df = pivot_df.astype(int)
-                st.dataframe(pivot_df, use_container_width=True, height=600)
+                # melt = pd.melt(df,
+                #                id_vars=['accident_cause_type_list', 'time_slot_id'],
+                #                value_vars=['count'],
+                #                var_name='지표',
+                #                value_name='사고건수_값')
+
+                # pivot_df = melt.pivot_table(
+                #     index=['accident_cause_type_list', '지표'],
+                #     columns='시간대',
+                #     values='사고건수_값'
+                # )
+                # pivot_df = pivot_df.astype(int)
+                # st.dataframe(pivot_df, use_container_width=True, height=600)
 
         except Exception as e:
             st.error(f"DB 조회 중 오류: {e}")
