@@ -101,7 +101,7 @@ TAAS 교통사고분석시스템 (https://taas.koroad.or.kr)
 
 예시 화면:
 
-<!-- ![Dashboard Example](images/streamlit_dashboard.png) -->
+<!-- ![Dashboard Example](images/streamlit_dashboard.png) --> ![ERD](images/age.png)
 
 ---
 
@@ -146,10 +146,10 @@ TAAS 교통사고분석시스템 (https://taas.koroad.or.kr)
 ## 📸 추가 이미지 예시 (옵션)
 
 - 시각화 예시:  
-  <!-- ![Graph Example](images/example_graph1.png) -->
+  <!-- ![Graph Example](images/example_graph1.png) --> ![ERD](images/age2.png)
 
 - FAQ 동작 예시:  
-  <!-- ![FAQ Example](images/faq_example.png) -->
+  <!-- ![FAQ Example](images/faq_example.png) --> ![ERD](images/faq.png)
 
 ---
 
